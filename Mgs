@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manglani General Store</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  background: #f5f7fb;
+}
+
+/* HEADER */
+header {
+  background: #2d6cdf;
+  color: white;
+  text-align: center;
+  padding: 15px;
+}
+
+header h1 { margin: 0; }
+header p { margin: 5px 0; font-size: 14px; }
+
+/* CATEGORY FILTER */
+.filters {
+  display: flex;
+  overflow-x: auto;
+  padding: 10px;
+  gap: 10px;
+}
+.filters button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 20px;
+  background: #ddd;
+  cursor: pointer;
+}
+.filters button.active {
+  background: #2d6cdf;
+  color: white;
+}
+
+/* PRODUCTS */
+.products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 15px;
+  padding: 15px;
+}
+
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.card h4 { margin: 8px 0 5px; }
+.card p { font-size: 13px; color: #666; }
+
+.card button {
+  width: 100%;
+  padding: 8px;
+  background: #2d6cdf;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* CART BUTTON */
+.cart-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #2d6cdf;
+  color: white;
+  padding: 15px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* CART MODAL */
+.cart {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 100%;
+  max-width: 350px;
+  height: 100%;
+  background: white;
+  transition: 0.3s;
+  padding: 15px;
+  overflow-y: auto;
+}
+.cart.active { right: 0; }
+
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+}
+
+.cart-item button {
+  padding: 3px 6px;
+}
+
+/* FORM */
+form input, form textarea {
+  width: 100%;
+  margin: 5px 0;
+  padding: 8px;
+}
+form button {
+  width: 100%;
+  padding: 10px;
+  background: green;
+  color: white;
+  border: none;
+}
+
+/* WHATSAPP */
+.whatsapp {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  background: #25D366;
+  color: white;
+  padding: 12px;
+  border-radius: 50%;
+  text-decoration: none;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>Manglani General Store</h1>
+<p>The Complete Shop</p>
+<p>Khitoli Road, Barhi | 📞 7879117042</p>
+</header>
+
+<div class="filters" id="filters"></div>
+
+<div class="products" id="products"></div>
+
+<div class="cart-btn" onclick="toggleCart()">🛒 <span id="count">0</span></div>
+
+<div class="cart" id="cart">
+<h3>Your Cart</h3>
+<div id="cartItems"></div>
+<h4>Total: ₹<span id="total">0</span></h4>
+
+<form action="https://formspree.io/f/YOUR_FORMSPREE_ID" method="POST" onsubmit="prepareOrder()">
+<input type="hidden" name="order_details" id="orderDetails">
+
+<input required placeholder="Your Name" name="name">
+<input required placeholder="Phone Number" name="phone">
+<textarea required placeholder="Address" name="address"></textarea>
+<textarea placeholder="Instructions" name="instructions"></textarea>
+
+<button type="submit">Place Order</button>
+</form>
+
+</div>
+
+<a class="whatsapp" href="https://wa.me/917879117042" target="_blank">💬</a>
+
+<script>
+const products = [
+{ name:"Aashirvaad Atta", price:280, cat:"Groceries", img:"https://i.ibb.co/5kQpZxS/atta.jpg", desc:"Premium wheat flour"},
+{ name:"Maggi Noodles", price:14, cat:"Snacks", img:"https://i.ibb.co/Xz8FZgL/maggi.jpg", desc:"2-min noodles"},
+{ name:"Amul Butter", price:280, cat:"Groceries", img:"https://i.ibb.co/4pDNDk1/butter.jpg", desc:"Fresh butter"},
+{ name:"Parle-G Biscuits", price:10, cat:"Snacks", img:"https://i.ibb.co/zrQq4Bz/parle.jpg", desc:"Classic biscuits"},
+{ name:"Fortune Oil", price:150, cat:"Groceries", img:"https://i.ibb.co/hYt7k6J/oil.jpg", desc:"Healthy oil"},
+{ name:"Lay's Chips", price:20, cat:"Snacks", img:"https://i.ibb.co/zXJ9HkW/lays.jpg", desc:"Crispy chips"},
+{ name:"Sugar 1kg", price:45, cat:"Groceries", img:"https://i.ibb.co/Yk7H6yF/sugar.jpg", desc:"Refined sugar"},
+{ name:"Dairy Milk", price:50, cat:"Snacks", img:"https://i.ibb.co/yN1J8TW/dairy.jpg", desc:"Chocolate"}
+];
+
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+function displayProducts(filter="All") {
+  const container = document.getElementById("products");
+  container.innerHTML = "";
+  products.filter(p=>filter==="All"||p.cat===filter)
+  .forEach(p=>{
+    container.innerHTML += `
+    <div class="card">
+      <img src="${p.img}" loading="lazy">
+      <h4>${p.name}</h4>
+      <p>${p.desc}</p>
+      <b>₹${p.price}</b>
+      <button onclick="addToCart('${p.name}')">Add</button>
+    </div>`;
+  });
+}
+
+function setupFilters(){
+  const cats = ["All",...new Set(products.map(p=>p.cat))];
+  const f = document.getElementById("filters");
+  cats.forEach(c=>{
+    f.innerHTML += `<button onclick="displayProducts('${c}')">${c}</button>`;
+  });
+}
+
+function addToCart(name){
+  const item = cart.find(i=>i.name===name);
+  if(item) item.qty++;
+  else cart.push({...products.find(p=>p.name===name), qty:1});
+  saveCart();
+}
+
+function saveCart(){
+  localStorage.setItem("cart", JSON.stringify(cart));
+  updateCart();
+}
+
+function updateCart(){
+  document.getElementById("count").innerText = cart.length;
+  const c = document.getElementById("cartItems");
+  c.innerHTML = "";
+  let total = 0;
+
+  cart.forEach(i=>{
+    total += i.price*i.qty;
+    c.innerHTML += `
+    <div class="cart-item">
+      ${i.name} x${i.qty}
+      <div>
+      <button onclick="changeQty('${i.name}',1)">+</button>
+      <button onclick="changeQty('${i.name}',-1)">-</button>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById("total").innerText = total;
+}
+
+function changeQty(name,delta){
+  const item = cart.find(i=>i.name===name);
+  item.qty += delta;
+  if(item.qty<=0) cart = cart.filter(i=>i.name!==name);
+  saveCart();
+}
+
+function toggleCart(){
+  document.getElementById("cart").classList.toggle("active");
+}
+
+function prepareOrder(){
+  let text = "";
+  cart.forEach(i=>{
+    text += `${i.name} x${i.qty} = ₹${i.price*i.qty}\n`;
+  });
+  text += "Total: ₹"+document.getElementById("total").innerText;
+  document.getElementById("orderDetails").value = text;
+  localStorage.removeItem("cart");
+}
+
+setupFilters();
+displayProducts();
+updateCart();
+</script>
+
+</body>
+</html>
